@@ -70,7 +70,7 @@ class NRClient:
         """POST /flows — full deploy with optimistic locking. Returns new rev."""
         headers = {
             "Node-RED-API-Version": "v2",
-            "Node-RED-Deployment-Type": "full",
+            "Node-RED-Deployment-Type": "nodes",
             "Content-Type": "application/json",
         }
         body = {"rev": rev, "flows": flows}
