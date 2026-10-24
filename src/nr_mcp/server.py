@@ -3,12 +3,20 @@
 import json
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 
 from .client import NRClient, NRError
 from . import tools
 
 
 mcp = FastMCP("nr-mcp", json_response=True)
+
+# Tool annotations let MCP clients tell reads from writes (e.g. Hermes `trust: untrusted`
+# only asks for approval on tools that are not marked read-only).
+READ_ONLY = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
+WRITES = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)
+DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, openWorldHint=False)
+ACTS = ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
 client = NRClient()
 
 
@@ -22,7 +30,7 @@ def _error(msg: str) -> str:
     return _handle_result({"error": msg})
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_flow_summary() -> str:
     """Quick overview of all Node-RED tabs with node counts and groups."""
     try:
@@ -34,7 +42,7 @@ async def nr_get_flow_summary() -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_flow(name_or_id: str) -> str:
     """Get a single Node-RED tab with all its nodes and groups. Accepts tab name (case-insensitive) or tab ID."""
     try:
@@ -46,7 +54,7 @@ async def nr_get_flow(name_or_id: str) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_search_nodes(
     query: str,
     type: str | None = None,
@@ -69,7 +77,7 @@ async def nr_search_nodes(
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_function_code(node_id: str) -> str:
     """Extract full JavaScript code from a Node-RED function node."""
     try:
@@ -81,7 +89,7 @@ async def nr_get_function_code(node_id: str) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_node_config(node_id: str) -> str:
     """Get full node configuration including wires, upstream/downstream connections, and group membership."""
     try:
@@ -93,7 +101,7 @@ async def nr_get_node_config(node_id: str) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_flow_context(flow_id: str, key: str | None = None) -> str:
     """Read Node-RED flow context variables. Pass key=null to list all keys, or a specific key to get its value."""
     try:
@@ -105,7 +113,7 @@ async def nr_get_flow_context(flow_id: str, key: str | None = None) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITES)
 async def nr_safe_deploy(
     node_id: str,
     fields: dict,
@@ -126,7 +134,7 @@ async def nr_safe_deploy(
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_installed_modules(query: str | None = None) -> str:
     """List installed Node-RED modules and their node types. Optionally filter by module name or node type containing `query` string. Returns module name, version, and list of node types provided."""
     try:
@@ -138,7 +146,7 @@ async def nr_get_installed_modules(query: str | None = None) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=ACTS)
 async def nr_inject(node_id: str) -> str:
     """Trigger an inject node to fire immediately. Use nr_search_nodes to find inject nodes first. The node must be of type 'inject'."""
     try:
@@ -150,7 +158,7 @@ async def nr_inject(node_id: str) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=WRITES)
 async def nr_create_nodes(
     nodes: list[dict],
     description: str | None = None,
@@ -165,7 +173,7 @@ async def nr_create_nodes(
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)
 async def nr_delete_nodes(
     node_ids: list[str],
     description: str | None = None,
@@ -180,7 +188,7 @@ async def nr_delete_nodes(
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=DESTRUCTIVE)
 async def nr_install_module(module_name: str) -> str:
     """Install a new Node-RED module (npm package) from the registry. Use nr_get_installed_modules to check what's already installed first. Installation may take 30-60 seconds."""
     try:
@@ -192,7 +200,7 @@ async def nr_install_module(module_name: str) -> str:
         return _error(f"Unexpected error: {type(e).__name__}: {e}")
 
 
-@mcp.tool()
+@mcp.tool(annotations=READ_ONLY)
 async def nr_get_debug_output(flow_id: str, key: str | None = None) -> str:
     """Read debug output from flow context. Use when a flow has a catch node that stores errors/debug data to flow context. Pass key=null to list all context keys. Trigger flow with nr_inject first, then read this."""
     try:
